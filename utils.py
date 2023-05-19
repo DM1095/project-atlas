@@ -16,6 +16,7 @@ from langchain.chains import LLMChain
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank, LLMChainExtractor
 from langchain.utilities import GoogleSerperAPIWrapper
+from langchain.schema import OutputParserException
 
 # REMEMBER TO ADD YOUR API KEYS HERE
 os.environ["SERPER_API_KEY"] = "ef63b458e83c92aea9903b0b6ee7aae63872b5a7"
@@ -279,11 +280,11 @@ def suggest_activities(coach_profile: dict,
     temperature = coach_profile['temperature']
     
     sys_prompt_template = f'''You are {name}, an expert in [{knowledge}]. {description}.'''
-    task_prompt_template = f'''Given the following user data {user_data} and suggested goals {goals}.
-    Recommend two or three activities per goal that will help the surveyed object to achieve the suggested goals.
-    You have access to google-serper to research recent wellbeing news, wellbeing assessment research, and wellbeing activities. Use the following keywords to optimize your search: {keywords}.
+    task_prompt_template = f'''Given the following user data {user_data},recommend two or three activities per goal in {goals} that will help the surveyed object achieve each goal.Group these activites according to their 
+    corresponding goal and number the groups. You have access to google-serper to research recent wellbeing news, wellbeing assessment research, and wellbeing activities. Use the following keywords to optimize your search: {keywords}.
     Be {personality}. ACTIVITIES: 
     '''
+    
     
     search = GoogleSerperAPIWrapper()
     tools = [(Tool(name='Intermediate Answer',
@@ -298,8 +299,10 @@ def suggest_activities(coach_profile: dict,
                                    agent=AgentType.SELF_ASK_WITH_SEARCH,
                                    verbose=False)
     
-    activities = coach_agent.run(prompt_template)
-    
+    try:
+        activities = coach_agent.run(prompt_template)
+    except OutputParserException as e:
+        activities='1.'+str(e).split('1.')[1]
     return activities
 
 # ignore this function, is still on development. Not sure if it will be useful or not.
